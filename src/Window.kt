@@ -1,9 +1,10 @@
 import swingRAD.*
 import swingRAD.mainBar.MainBar
 import java.awt.Dimension
+import java.awt.event.MouseEvent
+import java.awt.event.MouseListener
 import javax.swing.*
 import javax.swing.table.DefaultTableModel
-
 
 class Window: JFrame() {
 
@@ -12,7 +13,9 @@ class Window: JFrame() {
     private val bDraw = JButton() //boton para dibujar formulario
     private val pItems = JPanel() //panel donde se insertan los pesos y valores
     private val pOut = JPanel() //resultado al calcular
-    private var datos: Array<Array<String?>> = arrayOf() //matriz de datos ingresados
+    private val pOut1 = JPanel() //resultado al calcular
+    private var pesos: Array<JTextField?> =  arrayOf()//pesos ingresados
+    private var valores: Array<JTextField?> =  arrayOf()//valores ingresados
 
     init {
         //decoracion
@@ -51,6 +54,7 @@ class Window: JFrame() {
         //paneles inicialmente ocultos
         add(pItems)
         add(pOut)
+        add(pOut1)
 
         //boton para dibujar
         val scroll = JScrollBar()
@@ -59,6 +63,9 @@ class Window: JFrame() {
 
         bDraw.setProperties(160, 250, 100, 28, "Dibujar")
         bDraw.addActionListener {
+            valores = Array(tfNumberOfItems.text.toInt()){null}
+            pesos = Array(tfNumberOfItems.text.toInt()){null}
+
             pItems.removeAll()
             pItems.setProperties(64, 290, 300, 400)
 
@@ -67,14 +74,7 @@ class Window: JFrame() {
             pItems.add(pItemsContentPane)
 
             val pItemsContainer = JPanel()
-            pItemsContainer.setProperties(
-                0,
-                0,
-                276,
-                464 + tfNumberOfItems.text.toInt() * 30,
-                border = null,
-                background = transparent
-            )
+            pItemsContainer.setProperties(0, 0, 276, 464 + tfNumberOfItems.text.toInt() * 30, border = null, background = transparent)
             pItemsContentPane.add(pItemsContainer)
 
             val lPeso = JLabel()
@@ -93,11 +93,13 @@ class Window: JFrame() {
 
                 val tfPeso = JTextField()
                 tfPeso.setProperties(130, 50 + 30 * i, 60, 26)
-                pItemsContainer.add(tfPeso)
+                pesos[i] = tfPeso
+                pItemsContainer.add(pesos[i])
 
                 val tfValor = JTextField()
                 tfValor.setProperties(200, 50 + 30 * i, 60, 26)
-                pItemsContainer.add(tfValor)
+                valores[i] = tfValor
+                pItemsContainer.add(valores[i])
             }
 
             //bt calcular
@@ -128,36 +130,139 @@ class Window: JFrame() {
     }
 
     private fun calcular () {
+        Algoritmo.informacion = Array(tfNumberOfItems.text.toInt() + 1) { IntArray(tfWeight.text.toInt() + 1) } //datos procesados
+        val matriz = Array(tfNumberOfItems.text.toInt()) { IntArray(2) }
+        for (i in 0 until tfNumberOfItems.text.toInt()) {
+            matriz[i][0] = pesos[i]!!.text.toInt()
+            matriz[i][1] = valores[i]!!.text.toInt()
+        }
+        Algoritmo.calcular(tfNumberOfItems.text.toInt(), tfWeight.text.toInt(), matriz)
+
+        calcularTabla1()
+        val lResultado = JLabel()
+        lResultado.setProperties(400, 450, 200, 32, "Resultados", fontTitle)
+        add(lResultado)
+        calcularTabla2()
+    }
+
+    private fun calcularTabla1() {
         val placeholdes = arrayListOf("Artículo", "Peso", "Costo") //tabla superior
         for(i in 0 .. tfWeight.text.toInt())
             placeholdes.add(i.toString())
         val cabecera: Array<String> = placeholdes.toArray(arrayOfNulls<String>(0))
 
-        val placeholdes1 = arrayListOf("Artículo", "Peso", "Costo") //tabla inferior
-        val pCorner = JPanel()
-
         val modelo = DefaultTableModel()
         modelo.setColumnIdentifiers(cabecera)
         for (i in 0 until tfNumberOfItems.text.toInt()) {
-            modelo.addRow(arrayOf<Any>(i + 1, 0, 0, 0))
+            modelo.addRow(arrayOf<Any>(i + 1, pesos[i]!!.text.toInt(), valores[i]!!.text.toInt(), 0))
+            for(j in 0 until tfWeight.text.toInt()){
+                modelo.setValueAt(Algoritmo.informacion[i+1][j+1], i, 4 + j)
+            }
         }
 
         val tabla = JTable()
         tabla.model = modelo
         tabla.rowHeight = 40
-        tabla.setDefaultRenderer(Any::class.java, getCustomTable(semiDarkGrayBlue, semiDarkGrayBlue, mdb1, darkWhite, fontText))
+        tabla.setDefaultRenderer(
+            Any::class.java, getCustomTable(
+                semiDarkGrayBlue,
+                semiDarkGrayBlue,
+                mdb1,
+                darkWhite,
+                fontText
+            )
+        )
         tabla.gridColor = black
+        tabla.addMouseListener(object: MouseListener {
+            override fun mouseClicked(e: MouseEvent?) {
+                Algoritmo.hallarItems(tabla.selectedRow+1, tabla.selectedColumn-3)
+                var itemsList = ""
+                var peso = 0
+                for(i in 0 until Algoritmo.items.size) {
+                    itemsList += "${Algoritmo.datosClass[Algoritmo.items[i] - 1][1]}:${Algoritmo.items[i]} ${
+                        if(i < Algoritmo.items.size - 1) 
+                            "+ "
+                        else 
+                            " "
+                    }"
+                    peso += Algoritmo.datosClass[Algoritmo.items[i] - 1][0]
+                }
+                JOptionPane.showMessageDialog(null, "Este valor se obtuvo a través de: $itemsList\n" +
+                        "Donde n:m significa el valor n del artículo m\nEl peso total es: $peso\nLa complejidad de este algoritmo es polinomial: O(nW)")
+            }
+
+            override fun mousePressed(e: MouseEvent?) {
+            }
+
+            override fun mouseReleased(e: MouseEvent?) {
+            }
+
+            override fun mouseEntered(e: MouseEvent?) {
+            }
+
+            override fun mouseExited(e: MouseEvent?) {
+            }
+
+        })
 
         val header = tabla.tableHeader
         header.preferredSize = Dimension(580, 30)
         header.defaultRenderer = getCustomTable(semiDarkGray2, null, null, white, fontText)
 
         pOut.removeAll()
-        pOut.setProperties(384, 50, 846, 640)
+        pOut.setProperties(384, 50, 845, 361)
 
-        val pTabla = tabla.getPanelBar(2, 2, 843, 300)
+        val pTabla = tabla.getPanelBar(2, 2, 844, 360)
         pTabla.background = semiDarkGray2
+        pTabla.verticalScrollBar.setUI(getCustomScroll())
         pOut.add(pTabla)
+
+        repaint()
+    }
+
+    private fun calcularTabla2() {
+        Algoritmo.hallarItems()
+
+        val placeholdes = arrayOf("Artículo", "Peso", "Costo") //tabla superior
+
+        val modelo = DefaultTableModel()
+        modelo.setColumnIdentifiers(placeholdes)
+
+        var peso = 0
+        var costo = 0
+        for (i in 0 until Algoritmo.items.size) {
+            modelo.addRow(arrayOf<Any>(Algoritmo.items[i], Algoritmo.datosClass[Algoritmo.items[i] - 1][0],
+                Algoritmo.datosClass[Algoritmo.items[i] - 1][1]))
+            peso+=Algoritmo.datosClass[Algoritmo.items[i] - 1][0]
+            costo+=Algoritmo.datosClass[Algoritmo.items[i] - 1][1]
+        }
+        modelo.addRow(arrayOf<Any>("Total", peso, costo))
+
+        val tabla = JTable()
+        tabla.model = modelo
+        tabla.rowHeight = 40
+        tabla.setDefaultRenderer(
+            Any::class.java, getCustomTable(
+                semiDarkGrayBlue,
+                semiDarkGrayBlue,
+                mdb1,
+                darkWhite,
+                fontText
+            )
+        )
+        tabla.gridColor = black
+
+        val header = tabla.tableHeader
+        header.preferredSize = Dimension(580, 30)
+        header.defaultRenderer = getCustomTable(semiDarkGray2, null, null, white, fontText)
+
+        pOut1.removeAll()
+        pOut1.setProperties(384, 500, 845, 191)
+
+        val pTabla = tabla.getPanelBar(2, 2, 844, 190)
+        pTabla.background = semiDarkGray2
+        pTabla.verticalScrollBar.setUI(getCustomScroll())
+        pOut1.add(pTabla)
 
         repaint()
     }
