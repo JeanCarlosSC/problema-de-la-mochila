@@ -17,7 +17,7 @@ fun JPanel.setProperties(x: Int=0, y: Int=0, width: Int=0, height: Int=0, backgr
 /**
  * icon label
  */
-fun JLabel.setProperties(x: Int, y: Int, icon: Icon, cursor: Cursor? = null) {
+fun JLabel.setProperties(x: Int, y: Int, icon: ImageIcon, cursor: Cursor? = null) {
     this.setSize(icon.iconWidth, icon.iconHeight)
     this.setLocation(x, y)
     this.icon = icon

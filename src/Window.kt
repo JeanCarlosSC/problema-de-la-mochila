@@ -16,6 +16,7 @@ class Window: JFrame() {
     private val pOut1 = JPanel() //resultado al calcular
     private var pesos: Array<JTextField?> =  arrayOf()//pesos ingresados
     private var valores: Array<JTextField?> =  arrayOf()//valores ingresados
+    private val lResultado = JLabel()
 
     init {
         //decoracion
@@ -55,6 +56,7 @@ class Window: JFrame() {
         add(pItems)
         add(pOut)
         add(pOut1)
+        add(lResultado)
 
         //boton para dibujar
         val scroll = JScrollBar()
@@ -120,12 +122,16 @@ class Window: JFrame() {
                 scroll.value = 1
             }
 
-            add(pItems)
+            //add(pItems)
             repaint()
         }
         add(bDraw)
 
         //frame
+        val lBackground = JLabel()
+        lBackground.setProperties(0,0, ImageIcon("resources/background.png"))
+        add(lBackground)
+
         setProperties()
     }
 
@@ -135,13 +141,15 @@ class Window: JFrame() {
         for (i in 0 until tfNumberOfItems.text.toInt()) {
             matriz[i][0] = pesos[i]!!.text.toInt()
             matriz[i][1] = valores[i]!!.text.toInt()
+            if(pesos[i]!!.text.toInt() == 0 || valores[i]!!.text.toInt() == 0){
+                JOptionPane.showMessageDialog(null, "Valor ingresado inválido", "Error", JOptionPane.ERROR_MESSAGE)
+                throw Exception("Se ha ingresado un cero")
+            }
         }
         Algoritmo.calcular(tfNumberOfItems.text.toInt(), tfWeight.text.toInt(), matriz)
 
         calcularTabla1()
-        val lResultado = JLabel()
         lResultado.setProperties(400, 450, 200, 32, "Resultados", fontTitle)
-        add(lResultado)
         calcularTabla2()
     }
 
